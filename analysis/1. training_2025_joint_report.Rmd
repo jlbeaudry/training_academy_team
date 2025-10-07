@@ -101,81 +101,15 @@ youtube <- "879"
 
 ```
 
-```{r RDS delete sessions that did not run, eval = FALSE}
+```{r summary stats hdr data}
 
-# delete the sessions that were scheduled but not run [will need to compare to our training spreadsheet]
-  # use the n_courses code in the next chunk to make it easy to figure out which sessions didn't run
-
-df_remove1 <- df_ienrol %>% 
-  filter(course_name == "ARC Discovery Projects EOI PItching Session for CHASS/CEPSW/CBGL" & event_num == "3")
-
-list_df <- list(df_ienrol, df_remove1, df_remove2, df_remove3, df_remove4)
-
-df_ienrol <- list_df %>%reduce(anti_join)
-
-rm(df_remove1, df_remove2, df_remove3, df_remove4, list_df)
-
-### [breadcrumb: at some point we will need to sort out how to collapse the courses in the ienrol dataframe, but for now we will do it in the n_courses in the next chunk]
-
-
-```
-
-```{r clean hdr data}
-
-
-df_hdr <- read_csv(here::here("data", "HDR", "hdr_complete.csv"), lazy = FALSE)
-
-# turn them into factors
-
-cols <- c("event_num",
-          "course_name",
-             "college",
-             "attendance_status",
-          "role", 
-          "modality",
-          "training_category")
-
-
-df_hdr <- df_hdr %>% 
-  dplyr::mutate(across(all_of(cols), ~factor(.))) 
-
-
-
-# summarise the data based on how many courses were held and how many folks attended each of the sessions
-
-n_courses_all_hdr <- df_hdr %>% 
-#  filter(attendance_status == "Attended") %>% 
-  count(course_name, event_num)
+# calculate number of courses
 
 n_courses_hdr <- df_hdr %>% 
   filter(attendance_status == "Attended") %>% 
   count(course_name, event_num)
 
-# any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
-
-# need to find them first:
-
-check <- anti_join (n_courses_all_hdr, n_courses_hdr, by = join_by("course_name", "event_num"))
-
-
-add_df <- list(course_name = c("3MT Workshop/Practice Sessions", 
-               "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions",
-                "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions"),
-          event_num = c("7", "4", "14", "15", "20", "25"),
-          n = "0") %>% as_tibble %>%
-  mutate(
-    course_name = as.factor(course_name),
-    event_num = as.factor(event_num),
-    n = as.integer(n))
-
-
-n_courses_hdr <- full_join(n_courses_hdr,add_df) 
-
-rm(add_df)
-
+# calculate number of attendees
 
 n_attendees_hdr <- df_hdr %>%
   filter(attendance_status == "Attended") %>% 
@@ -187,8 +121,8 @@ n_unique_attendees_hdr <- n_distinct(n_attendees_hdr$fan)
 
 # all attendees broken down by College
 
-df_college_hdr <- df_hdr %>% 
-  count(college) %>% 
+df_portfolio_hdr <- df_hdr %>% 
+  count(portfolio) %>% 
   arrange(-n)
 
 
@@ -199,62 +133,16 @@ not_attended_hdr <- df_hdr %>% filter(attendance_status == "Did not attend")
 
 ```
 
+```{r summary stats ienrol data}
 
-```{r clean ienrol data}
-
-# [breadcrumbs: when I have a chance I should move the preprocessing into a separate script]
-
-df_ienrol <- df_ienrol %>%
-  select (c(course_name, event_num, first_name, last_name, fan, department, job_status, status)) 
-
-# turn them into factors
-
-cols <- c("course_name",
-          "event_num",
-             "department",
-             "job_status",
-             "status")
-
-# recode status and department
-
-df_ienrol <- df_ienrol %>% 
-  dplyr::mutate(across(all_of(cols), ~factor(.))) %>% 
-  dplyr::mutate(attendance_status = case_when (status == "attended" ~ "Attended", 
-                                        status == "didnotattend" ~ "Did not attend")) %>% 
-  dplyr::mutate(portfolio = case_when (grepl("Research", department) ~ "Portfolio of the Deputy Vice-Chancellor (Research)", #recode RDS as DVC(R)
-                                    !grepl("College of", department) ~ "Other portfolios",
-                                    department == "Other" ~ "Other",
-                                    department == "Unknown" ~ "Other", 
-                                    TRUE ~ as.factor(as.character(department))))
-
-
-# summarise the data based on how many courses were held and how many folks attended each of the sessions
-
-n_courses_all_rds <- df_ienrol %>% 
-#  filter(attendance_status == "Attended") %>% 
-  count(course_name, event_num)
+# calculate number of courses
 
 n_courses_rds <- df_ienrol %>% 
   filter(attendance_status == "Attended") %>% 
   count(course_name, event_num)
 
-# any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
-  # 2025: we don't seem to have any courses that were not included, so skip this for now. 
-
-# add_df <- list(course_name = "Research Ethics & Biosafety Applications Hands-on Workshop", 
-#           event_num = "3", 
-#           n = "0") %>% as_tibble %>% 
-#   mutate(
-#     course_name = as.factor(course_name), 
-#     event_num = as.factor(event_num), 
-#     n = as.integer(n))
-
-# n_courses <- full_join(n_courses,add_df) 
-
-# rm(add_df)
-
-
-# this number of attendees will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
+# calculate number of attendees
+  # this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
 
 n_attendees_ienrol <- df_ienrol %>%
   filter(attendance_status == "Attended") %>% 
@@ -262,7 +150,6 @@ n_attendees_ienrol <- df_ienrol %>%
 
 # unique attendees 
 n_unique_attendees_ienrol <- n_distinct(n_attendees_ienrol$fan)
-
 
 # all attendees broken down by College
 
@@ -280,9 +167,6 @@ not_attended_ienrol <- df_ienrol %>% filter(attendance_status == "Did not attend
 
 ```
 
-<!-- I use the following code to find the issues. But we don't need to run them with the full report. -->
-<!-- Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp. -->
-
 
 ```{r show all ienrol courses with registrations, include = TRUE, eval = FALSE}
 
@@ -295,8 +179,6 @@ kable(n_courses_all,
   kable_styling(latex_options = c("hold_position", "striped")) 
 
 ```
-
-<!-- Number of courses shown in iEnrol, with attendees = `r nrow(n_courses)` -->
 
 ```{r show all ienrol courses with attendees, include = TRUE, eval = FALSE}
 
@@ -315,7 +197,6 @@ n_compare <- anti_join(n_courses_all, n_courses, by = c("course_name", "event_nu
 # Number of courses shown in iEnrol, with registrations = `r nrow(n_courses_all)`
 
 ```
-
 
 ```{r compare all ienrol courses with registrations to courses with attendees, incl = FALSE, eval = FALSE}
 
@@ -352,27 +233,15 @@ rm(n_courses_2, df_sp_2, ienrol_vs_sp, sp_vs_ienrol)
 ```
 
 
-```{r clean spreadsheet data}
+```{r summary stats spreadsheet data}
 
-df_sp <- df_sp %>% 
-   dplyr::rename("Attended" = "No. attended") %>%
-     dplyr::rename("Attended_in_person" = "No. In person attendees") %>%
-     dplyr::rename("Attended_online" = "No. Online attendees") %>%
-    select(c(Theme, Event, Attended, Session, Attended_in_person, Attended_online)) %>% 
-  mutate("Event" = as.factor(Event))
-
-# this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
-
+# number of attendees 
+  # this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
 n_attended_sp <- sum(df_sp$Attended)
 
 # figure out how many sessions were held face-to-face vs. online & how many folks attended in person or online for hybrid events
 n_event_sp <- df_sp %>% 
   filter(Event == "E")
-
-# rename the collective theme in the spreadsheet 
-  
-df_sp [df_sp == "FNRC"] <- "First Nations Researchers Collective"
-df_sp [df_sp == "Commerce"] <- "Post-award, Intellectual Property, and Commercialisation"
 
 ```
 
@@ -409,10 +278,10 @@ fig_nums(name = "college_attendees",
 fig_nums(name = "college_unique_attendees", 
          caption = "Number of Unique Attendees in Training & Development Sessions (2025)")
 
-fig_nums(name = "job_status_attendees", 
+fig_nums(name = "role_attendees", 
          caption = "Number of Attendees in Training & Development Sessions (2025)")
 
-fig_nums(name = "job_status_unique_attendees", 
+fig_nums(name = "role_unique_attendees", 
          caption = "Number of Unique Attendees in Training & Development Sessions (2025)")
 
 table_nums(name = "theme_overview", 
@@ -641,23 +510,23 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2025 unique attendan
 # count attendees rate by role
 df_attend <- df_ienrol %>%
   filter(attendance_status == "Attended") %>% 
-  count(job_status)
+  count(role)
 
 # count unique attendees per portfolio
 df_attend_unique_role <- df_ienrol %>%
   filter(attendance_status == "Attended") %>%
-  distinct(fan, attendance_status, job_status) %>%
-  count(job_status)
+  distinct(fan, attendance_status, role) %>%
+  count(role)
 
 ```
 
 
-`r fig_nums(name = "job_status_attendees", display = "cite")` illustrates the
+`r fig_nums(name = "role_attendees", display = "cite")` illustrates the
 number of attendees according to their role, as reported in the iEnrol system.
 The majority of attendees were academic staff members
-(`r round(df_attend %>% filter(job_status=="Academic") %>% select(n)/sum(df_attend$n)*100 ,0)`%),
-followed by professional staff members (`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,0)`%).
-Only `r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,0)`% 
+(`r round(df_attend %>% filter(role=="Academic") %>% select(n)/sum(df_attend$n)*100 ,0)`%),
+followed by professional staff members (`r round(df_attend %>% filter(role=="Professional") %>% select(n)/sum(df_attend$n)*100 ,0)`%).
+Only `r round(df_attend %>% filter(role=="Student") %>% select(n)/sum(df_attend$n)*100 ,0)`% 
 of attendees at our sessions were students;
 the iEnrol system does not differentiate between postgraduate and undergraduate
 students, so we cannot further break down this category. This number likely
@@ -669,31 +538,31 @@ attendees were academic staff members.
 
 \vskip 0.3in
 
-`r fig_nums(name = "job_status_attendees")`
+`r fig_nums(name = "role_attendees")`
 
 ```{r plot the ienrol attendance by role, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
 
 # count attendees rate by role
 df_attend <- df_ienrol %>%
   filter(attendance_status == "Attended") %>%
-  count(job_status)
+  count(role)
 
 # need to note the threshold for the labels so only the smaller ones are repelled.
 threshold <- 100
 
 # plot it [this has attendance numbers by their role, as reported in ienrol]
 ggplot(df_attend, aes(
-  x = reorder(job_status, n),
+  x = reorder(role, n),
   y = n
 )) +
   geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
   geom_text(aes(y = n,
-                x = job_status,
+                x = role,
                 label = ifelse(n>threshold, n, "")),
             position = position_stack(vjust = 0.5),
             size = 6) +
   geom_text_repel(aes(y = n,
-                      x = job_status,
+                      x = role,
                       label = ifelse(n<threshold, n, "")), 
                   box.padding = 0.25,
                   size = 6) +
@@ -728,18 +597,18 @@ ggplot(df_attend, aes(
 # count unique attendees per portfolio
 df_attend_unique <- df_ienrol %>%
   filter(attendance_status == "Attended") %>%
-  distinct(fan, attendance_status, job_status) %>%
-  count(job_status)
+  distinct(fan, attendance_status, role) %>%
+  count(role)
 
 
 # plot it [this has unique attendance numbers by the portfolios]
 ggplot(df_attend_unique, aes(
-  x = reorder(job_status, n),
+  x = reorder(role, n),
   y = n
 )) +
   geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
   geom_text(aes(y = n,
-                x = job_status,
+                x = role,
                 label = n),
             position = position_stack(vjust = 0.5),
             size = 6) +
@@ -835,54 +704,6 @@ kable(theme_overview,
 
 ```
 
-
-```{r fund and apply 2025 by team, include = TRUE, eval = FALSE}
-
-# [breadcrumb: This is very useful for working with the grants team, but does not need to be
-  # part of this report. Pull out into its own Rmd.]
-
-fund_23 <- df %>%
-  filter(Theme == "Fund and Apply") %>%
-  select (Attended, Session) %>%
-  relocate (Attended, .after = Session) %>%
-      mutate ("Number" = 1:n()) %>%
-    relocate (Number)
-
-fund_team_23 <- fund_23 %>%
-  mutate(Team = case_when(
-    grepl("NHMRC", Session) ~ "NHMRC",
-    grepl("ARC", Session) ~ "ARC",
-    grepl("MRFF", Session) ~ "MRFF",
-    TRUE ~ as.character("Other"))
-  ) %>%
-  select (-Number) %>%
-  arrange(Team, desc(Attended)) %>%
-        mutate ("Number" = 1:n()) %>%
-    relocate (Number)
-
-
-total_fund_team_23 <- sum(fund_team_23$Attended)
-
-knitr::kable (
- fund_team_23 [, 1:3], # select only the names and levels columns
-  booktabs = T,
-   linesep = "",
-  col.names = c("Session Number", "Session Name", "Number of Attendees"),
-  caption =
-    sprintf("Fund and Apply sessions in 2025 (n = %d)",
-            total_fund_team_23),
-  align = 'clc',
-  longtable = T #break the table over multiple pages
-  ) %>%
-   column_spec(1, width = "0.5in") %>%
-   column_spec(2, width = "5in") %>%
-  column_spec(3, width = "0.75in") %>%
-  pack_rows (index = table(fund_team_23$Team)) %>%
-  kable_styling(full_width = F,
-                latex_options = c("repeat_header", "hold_position", "striped"))
-
-```
-
 \newpage
 
 `r table_nums(name = "sessions_by_theme", display = "cite")` provides
@@ -893,12 +714,12 @@ training and development themes.
 
 ```{r sessions and attendees by theme, include = TRUE, eval=TRUE}
 
-# how many sessions per theme
+# how many courses per theme
 theme_sessions <- df_sp %>%
-  group_by(Theme) %>%
-  select(c(Theme, Session, Attended)) %>%
-  arrange(Theme, Session) %>%
-  mutate(Theme = as.factor(Theme))
+  group_by(theme) %>%
+  select(c(theme, course_name, attended)) %>%
+  arrange(theme, course_name) %>%
+  mutate(theme = as.factor(theme))
 
 # make it look good
 kable(theme_sessions [, 2:3],
@@ -930,7 +751,7 @@ kable(theme_sessions [, 2:3],
 
 # how many sessions per theme -- just a quick and dirty report. Copy and paste into excel.
 
-print(unique(df_sp$Session))
+print(unique(df_sp$course_name))
 
 ```
 
