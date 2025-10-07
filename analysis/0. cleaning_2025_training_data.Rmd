@@ -80,9 +80,6 @@ df_ienrol <- read_csv(here::here("data", "RDS", "2025_ienrol_data.csv"), lazy = 
 
 df_hdr <- read_csv(here::here("data", "HDR", "hdr_complete.csv"), lazy = FALSE) 
 
-# we also need to bring in the youtube views; see the spreadsheet in the youtube analytics folder
-youtube <- "879"
-
 ```
 
 ```{r RDS delete sessions that did not run, eval = FALSE}
@@ -133,24 +130,32 @@ df_hdr <- df_hdr %>%
   dplyr::mutate(portfolio = case_when (is.na(college) ~ "Other",
                                     TRUE ~ as.factor(as.character(college)))) %>% 
   relocate(portfolio, .after = college) %>% 
-  select(-college)
+#  mutate(department = college) %>% # add this so we can run the same code in the report as we do with ienrol [or maybe not]
+  select(-college) %>% 
+  filter (course_name != "Research Town Hall with the Chief Scientist") # remove course from 2024
 
 # check that we have all the data we need
-# summarise the data based on how many courses were held and how many folks attended each of the sessions
+  # summarise the data based on how many courses were held and how many folks attended each of the sessions
+  # we are going to keep more variables than I normally would because we are going to use this df to join
+  # this hdr data to our spreadsheet. I don't want to have to do this again later.
 
 n_courses_all_hdr <- df_hdr %>% 
+  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
 #  filter(attendance_status == "Attended") %>% 
-  count(course_name, event_num)
+  count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
+  rename(registered = n)
 
-n_courses_hdr <- df_hdr %>% 
+n_courses_att_hdr <- df_hdr %>% 
+  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
   filter(attendance_status == "Attended") %>% 
-  count(course_name, event_num)
+  count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
+  rename(attended = n)
 
 # any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
 
 # need to find them first:
 
-check <- anti_join (n_courses_all_hdr, n_courses_hdr, by = join_by("course_name", "event_num"))
+check <- anti_join (n_courses_all_hdr, n_courses_att_hdr, by = join_by("course_name", "event_num"))
 
 add_df <- list(course_name = c("3MT Workshop/Practice Sessions", 
                "HDR Development Drop-in Sessions",
@@ -159,16 +164,21 @@ add_df <- list(course_name = c("3MT Workshop/Practice Sessions",
                 "HDR Development Drop-in Sessions",
                "HDR Development Drop-in Sessions"),
           event_num = c("7", "4", "14", "15", "20", "25"),
+          theme = "HDR students", 
+          team = "OGR",
+          modality = "synchronous",
+          data_source = "all_hdr_attendance",
           n = "0") %>% as_tibble %>%
   mutate(
     course_name = as.factor(course_name),
     event_num = as.factor(event_num),
-    n = as.integer(n))
+    attended = as.integer(n))
 
+# use this df later to join to our spreadsheet data
+n_courses_hdr <- full_join(n_courses_att_hdr,add_df) %>% 
+  select(-n)
 
-n_courses_hdr <- full_join(n_courses_hdr,add_df) 
-
-rm(add_df, check, n_courses_all_hdr, n_courses_hdr)
+rm(add_df, check, n_courses_all_hdr, n_courses_att_hdr)
 
 ```
 
@@ -352,14 +362,10 @@ rm(ienrol_vs_sp, sp_vs_ienrol)
 
 ```{r join the spreadsheet and hdr data}
 
-# collapse HDR data so I can join it with the spreadsheet data for reporting on themes
-hdr_collapse <- df_hdr %>% 
-  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
-  filter (attendance_status == "Attended") %>% 
-  count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
-  rename(attended = n)
+# use the data we cleaned earlier to figure out how many courses were included
+  # in the hdr data
 
-sp_hdr <- full_join(hdr_collapse, df_sp)
+sp_hdr <- full_join(n_courses_hdr, df_sp)
 
 ```
 
