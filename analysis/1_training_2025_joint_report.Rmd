@@ -298,6 +298,12 @@ not_attended_ienrol_hdr <- df_ienrol_hdr %>% filter(attendance_status == "Did no
   # this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
 n_attended_sp_hdr <- sum(df_sp_hdr$attended)
 
+# I want to look at the distribution of attendees across teams
+attendees_sp_hdr <- df_sp_hdr %>% 
+    filter (modality == "synchronous") %>% 
+  select (team, attended)
+
+
 # figure out how many sessions were held face-to-face vs. online & how many folks attended in person or online for hybrid events
   # [breadcrumb: we don't have this data for HDR data. Does Dani?]
 n_event_sp <- df_sp %>% 
@@ -324,6 +330,9 @@ fig_nums(name = "role_attendees",
 
 fig_nums(name = "role_unique_attendees", 
          caption = "Number of Unique Attendees in Training & Development Sessions (2025)")
+
+fig_nums(name = "attendee_distributions", 
+         caption = "Distribution of Attendees by Team")
 
 table_nums(name = "theme_overview", 
           caption = "Training and Development Summary for 2025")
@@ -363,6 +372,8 @@ In this report, we first break down our enrolments by College and Portfolio. We
 then explore the topics of the sessions in more detail. We provide an overview
 of the number of sessions and number of attendees by theme, and then
 report the number of attendees in each session organised by theme.
+
+
 
 ## Number of Attendees by College and Portfolio
 
@@ -614,6 +625,49 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2025 unique attendan
 
 \vskip 0.3in
 
+## Differences between activities by Research Development and Support and the Office of Graduate Research
+
+The two teams have historically worked independently serving different cohorts with 
+different drivers for their activities. Research Development and Support (RDS) primarily
+offers training and development activities to support researchers and research support
+staff. Given that their activities are based on a 'value add' approach, they are typically
+driven by requests from the research community and by identified areas of need. The 
+Office of Graduate Research is primarily focused on ensuring that HDR supervisors meet 
+registration requirements, while supporting the development and timely completion of 
+HDR students. 
+
+As shown in `r fig_nums(name = "attendee_distributions", display = "cite")`, the OGR
+team tends to have more smaller sessions (i.e., between 0-10 attendees) whereas RDS
+has more spread across larger numbers (i.e., between 10-20 and 20-30). RDS has more
+sessions than OGR with between 50 and 100 attendees, with a few sessions that attract 
+more than 100 attendees. 
+
+
+\vskip 0.3in
+
+```{r plot the sp attendance by team, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+# Bin the 'attended' values into ranges of 10, just to double check the data [hide for now]
+# attendees_sp_hdr %>%
+#   mutate(attended_bin = cut(attended, breaks = seq(0, 175, by = 10), right = FALSE)) %>%
+#   count(team, attended_bin) %>%
+#   arrange(team, attended_bin)   
+
+attendees_sp_hdr %>%
+  ggplot(aes(x = attended, fill = team)) +
+  geom_histogram(breaks = seq(0, 250, by = 10), alpha = 0.5, colour = "black") +
+  facet_wrap(~team) + 
+  xlab("Attendees (bins of 10)") +
+  ylab("Frequency") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        strip.text = element_text(size = 14, face = "bold"),
+        legend.position = "none") 
+
+```
+
+
 ## Overview of Research Training and Development Topics
 
 Next, we explore the topics of the sessions in more detail. 
@@ -621,6 +675,8 @@ Next, we explore the topics of the sessions in more detail.
 The numbers presented in the following tables reflect the total number of attendees
 (*n* = `r n_attended_sp_hdr`), most of whom are from Flinders
 (*n* = `r nrow(n_attendees_ienrol_hdr)`).
+
+
 
 ### Delivery Modality: Synchronous vs. Asynchronous
 
