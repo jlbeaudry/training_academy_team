@@ -142,10 +142,10 @@ df_hdr <- df_hdr %>%
   # this hdr data to our spreadsheet. I don't want to have to do this again later.
 
 n_courses_hdr <- df_hdr %>% 
-  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
+  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan, training_category)) %>% 
   filter(attendance_status == "Attended") %>% 
-  count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
-  rename(registered = n)
+  count(theme, team, course_name, event_num, modality, data_source, training_category) %>% 
+  rename(attended = n)
 
 
 # any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
@@ -199,7 +199,8 @@ df_ienrol <- df_ienrol %>%
   select (c(course_name, event_num, first_name, last_name, fan, department, job_status, status)) %>% 
   mutate (team = "RDS", 
           modality = "synchronous", 
-          data_source = "ienrol") %>% 
+          data_source = "ienrol", 
+          training_category = "seminar") %>% # just naming all of our sessions this to differentiate from OGR other sessions
   rename (role = job_status)
 
 
@@ -263,7 +264,8 @@ df_sp <- df_sp %>%
   select(c(theme, event, attended, course_name, attended_in_person, attended_online)) %>% 
   mutate(team = "RDS", 
          modality = "synchronous",
-         data_source = "training spreadsheet")
+         data_source = "training spreadsheet", 
+        training_category = "seminar") # just naming all of our sessions this to differentiate from OGR other sessions)
 
 
 # rename these themes in the spreadsheet (before we turn theme into a factor)
