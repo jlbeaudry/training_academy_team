@@ -132,53 +132,64 @@ df_hdr <- df_hdr %>%
   relocate(portfolio, .after = college) %>% 
 #  mutate(department = college) %>% # add this so we can run the same code in the report as we do with ienrol [or maybe not]
   select(-college) %>% 
-  filter (course_name != "Research Town Hall with the Chief Scientist") # remove course from 2024
+  filter (course_name != "Research Town Hall with the Chief Scientist", # remove course from 2024
+          course_name != "HDR Supervision: Industry Engagement for Researchers - panel discussion", # remove duplicate w/ our data
+          course_name != "HDR Supervision: Mentee Roundtable") # remove duplicate w/ our data
 
 # check that we have all the data we need
   # summarise the data based on how many courses were held and how many folks attended each of the sessions
   # we are going to keep more variables than I normally would because we are going to use this df to join
   # this hdr data to our spreadsheet. I don't want to have to do this again later.
 
-n_courses_all_hdr <- df_hdr %>% 
-  select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
-#  filter(attendance_status == "Attended") %>% 
-  count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
-  rename(registered = n)
-
-n_courses_att_hdr <- df_hdr %>% 
+n_courses_hdr <- df_hdr %>% 
   select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
   filter(attendance_status == "Attended") %>% 
   count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
-  rename(attended = n)
+  rename(registered = n)
+
 
 # any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
+  # Dani said (meeting 15/10/2025) that they wouldn't have run any session with 0 attendees, so 
+  # she asked that I remove those from the file. So, have only included courses with attendees. 
+  # keeping the code just in case I need to do this again. 
+
+# n_courses_all_hdr <- df_hdr %>% 
+#   select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
+# #  filter(attendance_status == "Attended") %>% 
+#   count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
+#   rename(registered = n)
+# 
+# n_courses_att_hdr <- df_hdr %>% 
+#   select(c(theme, team, course_name, event_num, modality, data_source, attendance_status, fan)) %>% 
+#   filter(attendance_status == "Attended") %>% 
+#   count(theme, team, course_name, event_num, modality, data_source, course_name, event_num) %>% 
+#   rename(attended = n)
 
 # need to find them first:
-
-check <- anti_join (n_courses_all_hdr, n_courses_att_hdr, by = join_by("course_name", "event_num"))
-
-add_df <- list(course_name = c("3MT Workshop/Practice Sessions", 
-               "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions",
-                "HDR Development Drop-in Sessions",
-               "HDR Development Drop-in Sessions"),
-          event_num = c("7", "4", "14", "15", "20", "25"),
-          theme = "HDR students", 
-          team = "OGR",
-          modality = "synchronous",
-          data_source = "all_hdr_attendance",
-          n = "0") %>% as_tibble %>%
-  mutate(
-    course_name = as.factor(course_name),
-    event_num = as.factor(event_num),
-    attended = as.integer(n))
-
-# use this df later to join to our spreadsheet data
-n_courses_hdr <- full_join(n_courses_att_hdr,add_df) %>% 
-  select(-n)
-
-rm(add_df, check, n_courses_all_hdr, n_courses_att_hdr)
+# 
+# check <- anti_join (n_courses_all_hdr, n_courses_att_hdr, by = join_by("course_name", "event_num"))
+# 
+# add_df <- list(course_name = c("3MT Workshop/Practice Sessions", 
+#                "HDR Development Drop-in Sessions",
+#                "HDR Development Drop-in Sessions",
+#                "HDR Development Drop-in Sessions",
+#                 "HDR Development Drop-in Sessions",
+#                "HDR Development Drop-in Sessions"),
+#           event_num = c("7", "4", "14", "15", "20", "25"),
+#           theme = "HDR students", 
+#           team = "OGR",
+#           modality = "synchronous",
+#           n = "0") %>% as_tibble %>%
+#   mutate(
+#     course_name = as.factor(course_name),
+#     event_num = as.factor(event_num),
+#     attended = as.integer(n))
+# 
+# # use this df later to join to our spreadsheet data
+# n_courses_hdr <- full_join(n_courses_att_hdr,add_df) %>% 
+#   select(-n)
+# 
+# rm(add_df, check, n_courses_all_hdr, n_courses_att_hdr)
 
 ```
 
