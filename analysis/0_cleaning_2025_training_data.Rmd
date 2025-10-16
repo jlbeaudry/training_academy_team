@@ -289,6 +289,14 @@ n_attended_sp <- sum(df_sp$attended)
 
 ```
 
+```{r identify joint sessions}
+
+df_sp <- df_sp %>% 
+    dplyr::mutate(team = case_when (course_name == "Researcher Mentoring Program: Mentee Roundtable #2" ~ "Joint", 
+                                    course_name == "Industry Engagement for Researchers Panel discussion" ~ "Joint", 
+                                    TRUE ~ as.factor(as.character(team)))) 
+
+```
 
 <!-- I ONLY NEED TO RUN THIS TO COMPARE IENROL TO SPREADSHEET DATA -->
 <!-- Number of courses shown in spreadsheet = `r nrow(df_sp)` -->

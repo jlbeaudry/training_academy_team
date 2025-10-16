@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2025"
-subtitle: "Joint Report from RDS & OGR Teams (Sept 30, 2025)"
+subtitle: "Joint Report from RDS & OGR Teams (Oct 16, 2025)"
 #author: "Jen Beaudry"
 #date: "29/09/2025"
 output: pdf_document
@@ -179,7 +179,7 @@ df_sp_hdr <- df_sp_hdr %>%
 # calculate number of courses from the hdr data
 
 n_courses_hdr <- df_hdr %>% 
-# filter(attendance_status == "Attended") %>% # they have 6 courses with 0 attendees
+ filter(attendance_status == "Attended") %>% 
   count(course_name, event_num)
 
 # calculate number of attendees -- we get 1840, but I think it should be 1864.
@@ -188,7 +188,7 @@ n_courses_hdr <- df_hdr %>%
 # [breadcrumb. I need to figure this out. It's something to do with counting for some reason]
 
 n_attendees_hdr <- df_hdr %>%
-  filter(attendance_status == "Attended") %>% 
+ filter(attendance_status == "Attended") %>% 
   count(fan, course_name, event_num)
 
 # unique attendees 
