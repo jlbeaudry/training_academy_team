@@ -90,11 +90,11 @@ df_hdr <- read_csv(here::here("data", "HDR", "hdr_complete.csv"), lazy = FALSE)
 df_remove1 <- df_ienrol %>% 
   filter(course_name == "ARC Discovery Projects EOI PItching Session for CHASS/CEPSW/CBGL" & event_num == "3")
 
-list_df <- list(df_ienrol, df_remove1, df_remove2, df_remove3, df_remove4)
+list_df <- list(df_ienrol, df_remove1)
 
 df_ienrol <- list_df %>%reduce(anti_join)
 
-rm(df_remove1, df_remove2, df_remove3, df_remove4, list_df)
+rm(df_remove1, list_df)
 
 ```
 
@@ -108,6 +108,25 @@ df_hdr <- df_hdr %>%
          last_name = surname) %>% 
   mutate (role = case_when (role == "supervisor" ~ "Academic", 
                                   role == "student" ~ "Student"))
+
+# clean up some of the messy course names & categorisation
+
+df_hdr <- df_hdr %>% 
+    mutate (training_category = case_when(course_name == "HDR Supervisor Core Training Part 2" ~ " seminar", 
+                                          course_name == "Delivery of Session: Dear New Postgrad" ~ "other",
+                                          course_name == "Delivery of Session - HDR Industry Engagement and Internships" ~ "other",
+                                          course_name == "Delivery of Workshop" ~ "other",
+                                  TRUE ~ as.character(training_category))) %>% 
+   mutate (modality = case_when(course_name == "HDR Supervisor Core Training Part 2" ~ " synchronous",
+                                course_name == "Delivery of Session: Dear New Postgrad" ~ "other",
+                                 course_name == "Delivery of Session - HDR Industry Engagement and Internships" ~ "other",
+                                  course_name == "Delivery of Workshop" ~ "other",
+                                  TRUE ~ as.character(modality))) %>% 
+  mutate (course_name = case_when(course_name == "Extra Core Attendance" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
+                                  course_name == "Extra Core attendance" ~ "HDR Supervisor Core Training Part 2 - Core Workshop",
+                                  course_name == "Extra Core completion" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
+                                  course_name == "HDR Supervisor Core Training Part 2" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
+                                  TRUE ~ as.character(course_name))) 
 
 # turn them into factors
 
@@ -321,10 +340,12 @@ kable(simple_df_sp,
 
 ```
 
-<!-- I use the following code to find the issues. But we don't need to run them with the full report. -->
-<!-- Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp. -->
+
 
 ```{r show all ienrol courses with registrations, include = TRUE, eval = FALSE}
+
+# I use the following code to find the issues. But we don't need to run them with the full report.
+# Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp.
 
 # make it look good
 kable(n_courses_all_rds, 
@@ -336,9 +357,11 @@ kable(n_courses_all_rds,
 
 ```
 
-<!-- Number of courses shown in iEnrol, with attendees = `r nrow(n_courses)` -->
+
 
 ```{r show all ienrol courses with attendees, include = TRUE, eval = FALSE}
+
+#Number of courses shown in iEnrol, with attendees = `r nrow(n_courses)` 
 
 # make it look good
 kable(n_courses_rds, 
