@@ -14,10 +14,6 @@ editor_options:
 # just a reminder that there is no output from this script. It just cleans the data.
   # I have built it as a Rmd so we can run it as a child document.
 
-# turn it into an R script and try this code in a chunk
-# {r run-preprocessing, include = FALSE}
-# source(here::here("analysis", "0. cleaning_2025_training_data.R"))}
-
 knitr::opts_chunk$set(echo = FALSE,
                       include = FALSE, 
                       eval = TRUE)
@@ -114,8 +110,6 @@ df_hdr <- df_hdr %>%
                                   role == "student" ~ "Student"))
 
 # clean up some of the messy course names & categorisation
-  # note: the counts of all vs sync vs async won't match if there are sync & a sync courses with the same name! 
-  # add a different event num so it's counted twice in the 'all' courses
 
 df_hdr <- df_hdr %>% 
     mutate (training_category = case_when(course_name == "HDR Supervisor Core Training Part 2" ~ " seminar", 
@@ -131,12 +125,10 @@ df_hdr <- df_hdr %>%
   mutate (course_name = case_when(course_name == "Extra Core Attendance" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
                                   course_name == "Extra Core attendance" ~ "HDR Supervisor Core Training Part 2 - Core Workshop",
                                   course_name == "Extra Core completion" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
-                                  course_name == "HDR Supervisor Core Training Part 2" ~ "HDR Supervisor Core Training Part 2 - Core Workshop", 
+                                  course_name == "HDR Supervisor Core Training Part 2" ~ "HDR Supervisor Core Training Part 2 - Core
+                                  Workshop", 
                                   course_name == "Module 11: HDR Intellectual Property" ~ "Module 11: HDR Student Intellectual Property",
                                   TRUE ~ as.character(course_name))) %>% 
-  mutate (event_num = case_when(course_name == "Seminar: Inclusive approaches to designing, conducting and supervising HDR research" 
-                                & modality == "asynchronous" ~ 2, 
-                                TRUE ~ event_num)) %>% 
   mutate(course_name = str_remove(course_name, "^Seminar:\\s+")) %>% 
   mutate(course_name = str_remove(course_name, "^Workshop:\\s+"))
 

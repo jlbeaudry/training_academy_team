@@ -74,8 +74,7 @@ fig_nums <- captioner(prefix = "Figure")
 <!--  This reruns the cleaning script so we don't have to run that separately when we update the data. 
   I think. Check that this works! It might only happen when we knit the file.-->
 
-```{r run preprocessing, child=(here::here("analysis", "0. cleaning_2025_training_data.Rmd")), include=FALSE, eval=FALSE}
-
+```{r child = here::here("analysis", "0_cleaning_2025_training_data.Rmd"), include=FALSE, eval=FALSE}
 
 ```
 
@@ -331,8 +330,9 @@ df_all_ienrol_hdr <- df_ienrol_hdr %>%
         training_category != "other") 
 
 df_sync_ienrol_hdr <- df_ienrol_hdr %>% 
- filter(attendance_status == "Attended", 
-       modality == "synchronous") 
+   filter(attendance_status == "Attended", 
+       modality == "synchronous",
+       training_category != "other") 
 
 df_async_ienrol_hdr <- df_ienrol_hdr %>% 
  filter(attendance_status == "Attended", 
@@ -405,6 +405,13 @@ attendance_summary <- df_sync_ienrol_hdr %>%
     mean_sessions = mean(sessions_attended)
   )
 
+# Calculate how many sessions people attended
+
+attendance_times <- df_sync_ienrol_hdr %>%
+  group_by(fan) %>%
+  summarise(sessions_attended = n(), .groups = "drop") %>% 
+  count (sessions_attended, name = "number_of_people")
+  
 
 
 ```
@@ -455,6 +462,9 @@ n_event_sp <- df_sp %>%
 # use kable captions to provide the captions for the Tables, but use the captioner package
   # to be able to reference the tables within the text
 
+fig_nums(name = "attendance_times", 
+         caption = "Distribution of the Number of Synchronous Sessions People Atttended (2025)")
+
 fig_nums(name = "college_attendees", 
          caption = "Number of Attendees in Synchronous Training & Development Sessions (2025)")
 
@@ -477,10 +487,10 @@ table_nums(name = "sessions_by_theme",
           caption = "Training and Development Sessions by Theme for Synchronous Sessions (2025)")
 
 table_nums(name = "async_theme_overview", 
-          caption = "Training and Development Summary for Asynchronous Sessions (2025)")
+          caption = "Training and Development Summary for Asynchronous Modules (2025)")
 
 table_nums(name = "async_sessions_by_theme", 
-          caption = "Training and Development Sessions by Theme for Asynchronous Sessions (2025)")
+          caption = "Training and Development Asynchronous Modules by Theme (2025)")
 
 table_nums(name = "other_sessions", 
           caption = "Training and Development Sessions by Theme for Sessions Offered Outside Flinders (2025)")
@@ -492,12 +502,13 @@ table_nums(name = "other_sessions",
 As of Sept 30, 2025, the two Researcher Development teams (i.e., Researcher Training, 
 Development and Communication team in Research Development and Support [RDS], and 
 the HDR Development team in the Office of Graduate Research [OGR]) have offered 
-`r nrow(n_courses_all_ienrol_hdr)` information
-sessions and development workshops to researchers, research support staff, HDR 
-supervisors and HDR students at Flinders University. 
+**`r nrow(n_courses_all_ienrol_hdr)` information sessions and development workshops** 
+to researchers, research support staff, HDR supervisors and HDR students at Flinders
+University. 
 
-From the Flinders community, `r nrow(n_attendees_all_ienrol_hdr)` people engaged with our 
-research training and development activities thus far in 2025, demonstrating that 
+From the Flinders community, **`r nrow(n_attendees_all_ienrol_hdr)` people** have 
+engaged with our research training and development activities thus far in 2025, 
+demonstrating that 
 a large number of people from the Flinders research community are engaging in 
 our research training and development program. It is difficult to determine the 
 exact proportion of the research-related population that is engaging with our 
@@ -511,9 +522,11 @@ because we allowed external people to join select sessions (e.g., Open Research 
 the inaugural NAIDOC Indigenous Research Showcase, etc.).
 
 These reported numbers reflect engagement in our synchronous sessions 
-(*n* = `r nrow(n_courses_sync_ienrol_hdr)`), which include in-person, online, and hybrid sessions, and
-asynchronous online modules (*n* = `r nrow(n_courses_async_ienrol_hdr)`) that can 
-be completed any time. Most of our participants engaged with 
+(*n* = `r nrow(n_courses_sync_ienrol_hdr)`; e.g., in-person, 'live' online, and hybrid sessions) and 
+asynchronous online modules (*n* = `r nrow(n_courses_async_ienrol_hdr)`) that HDR supervisors
+could complete any time. Please note that HDR student engagement in online modules
+is not captured in this report due to limitations in system reporting. 
+Most of our participants engaged with 
 synchronous sessions (*n* = `r sum(df_sync_sp_hdr$attended)`; 
 `r round(sum(df_sync_sp_hdr$attended)/sum(df_all_sp_hdr$attended)*100, 0)`%), 
 while `r round(sum(df_async_sp_hdr$attended)/sum(df_all_sp_hdr$attended)*100, 0)`%
@@ -526,14 +539,42 @@ our synchronous sessions was `r round(mean(n_courses_sync_ienrol_hdr$n),0)` with
 `r round(median(n_courses_sync_ienrol_hdr$n),0)`. On average, participants 
 attended `r round(attendance_summary$mean_sessions,2)` 
 synchronous sessions; the number of sessions attended ranged from `r attendance_summary$min_sessions` to 
-`r attendance_summary$max_sessions`. The number of 'repeat customers' speaks to 
-the quality of the sessions on offer. 
+`r attendance_summary$max_sessions`. As illustrated in `r fig_nums(name = "attendance_times", display = "cite")`, 
+the distribution of the number of sessions attended is positively skewed.
+The number of 'repeat customers' speaks to the quality of the sessions on offer. 
 
 In this report, we first break down our enrolments by College and Portfolio. We
 then explore the topics of our sessions and modules in more detail. First we 
 report the data for the synchronous sessions and then for the asynchronous modules. 
 For each, we provide an overview of the number of activities and number of attendees 
 by theme, and then report the number of attendees in each activity organised by theme.
+
+\newpage
+
+`r fig_nums(name = "attendance_times")`
+
+
+```{r plot the attendance distribution, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+
+attendance_times %>%
+  ggplot(aes(x = sessions_attended, y = number_of_people)) +
+    geom_col(fill = "#90b8da", color = "black") +
+  geom_text(aes(label = number_of_people), vjust = -0.5) +
+  labs(x = "Sessions Attended",
+       y = "Frequency") +
+  theme_classic() +
+    theme(
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 14, family="sans"),
+    axis.text = element_text(size = 14, family ="sans"),
+    axis.title = element_text(size = 14, family = "sans")
+    )
+
+
+
+```
+
 
 
 ## Number of Attendees by College and Portfolio in Synchronous Sessions
@@ -560,10 +601,11 @@ the average attendance rate for
 number of attendees across the Colleges and Portfolios. The College of Medicine
 and Public Health also had the most unique attendees. 
 
-The patterns of the data in `r fig_nums(name = "college_attendees", display = "cite")` and `r fig_nums(name = "college_unique_attendees", display = "cite")` broadly reflect the size of the 
+The patterns of the data in `r fig_nums(name = "college_attendees", display = "cite")` 
+and `r fig_nums(name = "college_unique_attendees", display = "cite")` broadly reflect the size of the 
 Colleges. 
 
-\vskip 0.3in
+\newpage
 
 `r fig_nums(name = "college_attendees")`
 
@@ -616,7 +658,7 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2025 attendance by p
 
 ```
 
-\newpage
+\vskip 0.3in
 
 `r fig_nums(name = "college_unique_attendees")`
 
@@ -672,9 +714,38 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2025 unique attendan
 ```
 
 
+### Hybrid Events: In-person vs. online attendance
+
+As requested by an academic, the RDS development team has been tracking how many 
+people attend hybrid events online vs. in person. This allows us to better understand
+our research community's preference for online versus in-person events. 
+We do not have this information for the HDR events, so this analysis is based on 
+the RDS data only. 
+
+Of the `r nrow(n_courses_rds)` sessions that RDS offered thus far in 2025, `r nrow(n_event_sp)` 
+(`r round((nrow(n_event_sp))/nrow(n_courses_rds)*100, 0)`%)
+were held face-to-face, with a hybrid option available whenever possible for those who 
+could not attend in person. Unfortunately, it was not possible to offer a hybrid 
+option for a few sessions, such as interactive workshops. We will continue to explore 
+how to connect with and support our Rural, Regional and Remote colleagues in the future. 
+
+When provided with a face-to-face option, the majority of participants attended 
+in person (*n* = `r sum(n_event_sp$attended_in_person)`; 
+`r round((sum(n_event_sp$attended_in_person))/sum(n_event_sp$attended)*100, 0)`%) 
+with a smaller proportion attending online (*n* = `r sum(n_event_sp$attended_online)`; 
+`r round((sum(n_event_sp$attended_online))/sum(n_event_sp$attended)*100, 0)`%). 
+Although it is likely that the Flinders' research community prefer to meet 
+face-to-face when possible, this in-person 
+preference might be inflated by our team's decision to require people to request an 
+online link for in-person sessions rather than providing it by default. We will
+continue to do this in 2026 so members of the research community have opportunities
+to expand their networks and to connect in-person. 
+
+
+
 ## Number of Attendees According to their Role
 
-```{r ienrol attendance by role, eval=TRUE}
+```{r sync attendance by role, eval=TRUE}
 
 # count attendees rate by role
 df_attend <- df_sync_ienrol_hdr %>%
@@ -697,21 +768,21 @@ training (coded as students).
 The majority of attendees were academic staff members
 (`r round(df_attend %>% filter(role=="Academic") %>% select(n)/sum(df_attend$n)*100 ,0)`%),
 followed by students 
-(`r round(df_attend %>% filter(role=="Student") %>% select(n)/sum(df_attend$n)*100 ,0)`%),  
-then professional staff members 
+(`r round(df_attend %>% filter(role=="Student") %>% select(n)/sum(df_attend$n)*100 ,0)`%), and 
+professional staff members 
 (`r round(df_attend %>% filter(role=="Professional") %>% select(n)/sum(df_attend$n)*100 ,0)`%).
 
 An analysis of the unique attendees, indicates that the largest cohort of unique 
 attendees were academic staff members (*n* = `r df_attend_unique_role %>% filter(role=="Academic") %>% select(n)`).
 
-\newpage
+\vskip 0.3in
 
 `r fig_nums(name = "role_attendees")`
 
-```{r plot the ienrol attendance by role, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+```{r plot the sync attendance by role, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
 
 # count attendees rate by role
-df_attend <- df_all_ienrol_hdr %>%
+df_attend <- df_sync_ienrol_hdr %>%
   filter(attendance_status == "Attended") %>%
   count(role)
 
@@ -826,7 +897,7 @@ HDR students.
 
 ### Delivery Modality: Synchronous vs. Asynchronous
 
-Most of the `r nrow(n_courses_all_ienrol_hdr)` activities that we offered in 2025 were 
+Most of the `r nrow(n_courses_all_ienrol_hdr)` activities that we held were 
 offered as synchronous sessions 
 (n = `r n_courses_sync_ienrol_hdr %>% count()`) 
 whereas others (n = `r n_courses_async_ienrol_hdr %>% count()`) 
@@ -842,20 +913,20 @@ points in their candidature, and have different training needs at different time
 accordingly). There are also a large proportion of off-campus and part-time HDR
 students, therefore flexible asynchronous training options are important for this cohort. 
 
-### Attendance Numbers and Patterns
-
-The RDS team has offered `r nrow(n_courses_rds)` synchronous information
-sessions and development workshops so far in 2025, with `r sum(df_sp$attended)`
-attendees at these sessions. The OGR team has offered `r nrow(n_courses_sync_hdr)` 
-synchronous information sessions and development workshops, with `r nrow(df_sync_hdr)`
-attendees at these sessions. 
+### Attendance Patterns and Numbers
 
 As shown in `r fig_nums(name = "attendee_distributions", display = "cite")`, the OGR
 team tends to have smaller synchronous sessions (i.e., between 0-10 attendees) whereas RDS
 has more spread across larger numbers (i.e., between 10-20 and 20-30). RDS has more
 sessions than OGR with between 50 and 100 attendees, with a few sessions that attract 
 more than 100 attendees. We are in the infancy of offering joint sessions, as reflected
-in that panel of the figure. 
+in the left-hand panel of the figure. 
+
+The RDS team has offered `r nrow(n_courses_rds)` synchronous information
+sessions and development workshops so far in 2025, with `r sum(df_sp$attended)`
+attendees at these sessions. The OGR team has offered `r nrow(n_courses_sync_hdr)` 
+synchronous information sessions and development workshops, with `r nrow(df_sync_hdr)`
+attendees at these sessions. 
 
 
 \vskip 0.3in
@@ -891,12 +962,10 @@ attendees_sp_hdr %>%
 
 ## Overview of Research Training and Development Topics 
 
-Next, we explore the topics of the sessions in more detail. 
+Next, we explore the topics and modalities of the sessions in more detail. 
 
 We first report the synchronous sessions offered by RDS and OGR, then the 
-asynchronous sessions offered by OGR to HDR students and supervisors, and finally
-the external training activities that HDR supervisors reported that they completed
-that are relevant for their HDR supervisor development. 
+asynchronous modules offered by OGR to HDR students and supervisors.
 
 ### Themes for Synchronous Training & Development Programs
 
@@ -916,41 +985,13 @@ reports.
 
 The largest number of sessions offered from RDS
 was in the 'Research Funding' theme, demonstrating Flinders University's commitment
-to support and develop researchers so they can attract external research funding. 
+to supporting and developing researchers so they can attract external research funding. 
 The fact that this theme also had the largest number of attendees is evidence that 
 the research community values these training and development opportunities. The 
 OGR team offered the most number of synchronous sessions to HDR students, including
 regular drop-in sessions. 
 
-
-### Hybrid Events: In-person vs. online attendance
-
-As requested by an academic, the RDS development team has been tracking how many 
-people attend hybrid events online vs. in person. This allows us to better understand
-our research community's preference for online versus in-person events. 
-We do not have this information for the HDR events, so this analysis is based on 
-the RDS data only. 
-
-Of the `r nrow(n_courses_rds)` sessions that RDS offered in 2025, `r nrow(n_event_sp)` 
-(`r round((nrow(n_event_sp))/nrow(n_courses_rds)*100, 0)`%)
-were held face-to-face, with a hybrid option available whenever possible for those who 
-could not attend in person. Unfortunately, it was not possible to offer a hybrid 
-option for a few sessions, such as interactive workshops. We will continue to explore 
-how to connect with and support our Rural, Regional and Remote colleagues in the future. 
-
-When provided with a face-to-face option, the majority of participants attended 
-in person (*n* = `r sum(n_event_sp$attended_in_person)`; 
-`r round((sum(n_event_sp$attended_in_person))/sum(n_event_sp$attended)*100, 0)`%) 
-with a smaller proportion attending online (*n* = `r sum(n_event_sp$attended_online)`; 
-`r round((sum(n_event_sp$attended_online))/sum(n_event_sp$attended)*100, 0)`%). 
-Although it is likely that the Flinders' research community prefer to meet 
-face-to-face when possible, this in-person 
-preference might be inflated by our team's decision to require people to request an 
-online link for in-person sessions rather than providing it by default. We will
-continue to do this in 2026 so members of the research community have opportunities
-to expand their networks and to connect in-person. 
-
-\vskip 0.3in
+\newpage
 
 ```{r sync theme overview, include = TRUE, eval = TRUE}
 
@@ -973,13 +1014,10 @@ kable(theme_overview,
 
 ```
 
-\newpage
 
 `r table_nums(name = "sessions_by_theme", display = "cite")` provides
-additional detail about the specific sessions that we ran within each of the
-training and development themes.
+additional detail about the modules that HDR students and supervisors completed.
 
-\vskip 0.3in
 
 ```{r sync sessions and attendees by theme, include = TRUE, eval=FALSE}
 
@@ -1090,7 +1128,7 @@ kable(theme_sessions [, 2:4],
 `r table_nums(name = "async_theme_overview", display = "cite")` shows the number
 of asynchronous modules and completions by theme. 
 
-Nearly all asynchronous sessions were offered by OGR because they need to ensure
+Nearly all asynchronous activities were offered by OGR because they need to ensure
 they meet the needs of HDR students, including international and part-time students. 
 Unfortunately, due to difficulties within the system, we cannot provide data for
 student engagement with the online modules, with the exception of the HDR Induction modules. As 
@@ -1105,12 +1143,14 @@ Integrity' modules mandatory, if Flinders procures a Learning Management System
 with that capability that is accessible by HDR students and academics with adjunct
 status. 
 
+\newpage
+
 ### Supervisor Development Program
 
 On top of the synchronous supervisor training sessions, the HDR Development team 
 manage a mandatory development program for HDR supervisors. The points-based 
 program consists of two core Flinders specific modules (one asynchronous and one 
-synchronous), a range of online modules and seminars housed on Canvas, and numerous 
+synchronous), a range of online modules and seminars oused on Canvas, and numerous 
 interactive workshops (reported in the previous table). All supervisors need to 
 complete the program before taking on new students (two core components and 30 points)
 and update their training by completing 15 points every two years. The purpose 
@@ -1137,7 +1177,7 @@ kable(async_theme_overview,
       booktabs = T,
       col.names = c("Theme", "Number of Sessions", "Number of Attendees"),
       align = c('lcc'),
-      caption = "Training and Development Summary for 2025",
+      caption = "Training and Development Summary for Asynchronous Modules (2025)",
       linesep = "\\addlinespace") %>%
   kable_styling(latex_options = c("hold_position", "striped"))
 
@@ -1158,8 +1198,8 @@ kable(async_theme_overview,
 
 df_async_hdr_category <- df_async_sp_hdr %>%
   dplyr::mutate (theme_category = case_when(theme == "HDR students" ~ "HDR Students", 
-                                            training_category == "online core" ~ "HDR Supervisor core", 
-                                            training_category == "online module" ~ "HDR Supervisor modules",
+                                            training_category == "online core" ~ "HDR Supervisor Core", 
+                                            training_category == "online module" ~ "HDR Supervisor Modules",
                                             training_category == "online workshop" ~ "HDR Supervisor Workshops",
                                             training_category == "online seminar" ~ "HDR Supervisor Seminars")) %>% 
   dplyr::mutate(theme_category = fct_relevel(theme_category, "HDR Students")) 
@@ -1179,13 +1219,11 @@ kable(async_theme_overview,
       booktabs = T,
       col.names = c("Theme", "Number of Modules", "Number of Completions"),
       align = c('lcc'),
-      caption = "Asynchronous Modules for HDR Students and HDR Supervisors (2025)",
+      caption = "Summary of Asynchronous Modules for HDR Students and HDR Supervisors (2025)",
       linesep = "\\addlinespace") %>%
   kable_styling(latex_options = c("hold_position", "striped"))
 
 ```
-
-\vskip 0.3in
 
 `r table_nums(name = "async_sessions_by_theme", display = "cite")` provides
 additional detail about the specific sessions that we ran within each of the
@@ -1213,7 +1251,7 @@ kable(async_theme_sessions [, 2:3],
   linesep = "\\addlinespace",
   col.names = c("Modules by Themes", "Number of Completions"),
   caption =
-    sprintf("Training and Development Sessions for 2025 (n = %d)",
+    sprintf("Asynchronous Modules for HDR Students and HDR Supervisors (n = %d)",
             n_attended_async_sp_hdr),
   align = 'lc',
   longtable = T #break the table over multiple pages
@@ -1230,13 +1268,13 @@ kable(async_theme_sessions [, 2:3],
 ```
 
 
+
+```{r other sessions and attendees, include = TRUE, eval = FALSE}
+
 `r table_nums(name = "other_sessions", display = "cite")` provides
 additional detail about the specific sessions that HDR supervisors participated 
 in outside of the training and development programs offered by the OGR and RDS teams. 
 
-\vskip 0.3in
-
-```{r other sessions and attendees, include = TRUE, eval = TRUE}
 
 # how many courses and attendees
 other_sessions <- df_other_hdr %>%
@@ -1277,13 +1315,12 @@ print(unique(df_sp$course_name))
 
 ```
 
-
-\vskip 0.4in
+\vskip 0.3in
 
 If you have any questions or suggestions for additional training and development
 sessions for Researchers, HDR Students or HDR Supervisors, please contact 
 Dr Jen Beaudry (Manager, Researcher Training, Development and Communication) 
-in Research Development and Support and Dr Dani Milos (HDR Education Coordinator) 
+in Research Development and Support, and Dr Dani Milos (HDR Education Coordinator) 
 in the Office of Graduate Research via researcher.development@flinders.edu.au.
 
 
